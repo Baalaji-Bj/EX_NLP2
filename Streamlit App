@@ -1,0 +1,42 @@
+# Run this on terminal streamlit run app.py
+
+import streamlit as st
+import joblib
+import re
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+import nltk
+
+# Setup
+nltk.download('stopwords')
+stemmer = PorterStemmer()
+stop_words = set(stopwords.words('english'))
+
+# Load model and vectorizer
+model = joblib.load("fake_news_model.joblib")
+vectorizer = joblib.load("tfidf_vectorizer.joblib")
+
+# Cleaning function
+def clean_text(text):
+    text = re.sub('[^a-zA-Z]', ' ', text)
+    text = text.lower()
+    words = text.split()
+    words = [stemmer.stem(word) for word in words if word not in stop_words]
+    return ' '.join(words)
+
+# UI
+st.set_page_config(page_title="Fake News Detector")
+st.title("📰 Fake News Detection Web App")
+st.markdown("Enter any news text below to classify it as Real or Fake.")
+
+user_input = st.text_area("✍️ Enter News Text")
+
+if st.button("Predict"):
+    if not user_input.strip():
+        st.warning("Please enter some text.")
+    else:
+        cleaned = clean_text(user_input)
+        vectorized = vectorizer.transform([cleaned])
+        prediction = model.predict(vectorized)[0]
+        label = "✅ Real News" if prediction == 1 else "❌ Fake News"
+        st.success(f"Prediction: {label}")
